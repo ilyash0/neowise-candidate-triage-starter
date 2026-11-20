@@ -15,21 +15,32 @@
   <h1>Входящие заявки</h1>
   <form>
     <label for="message">Текст заявки</label>
-    <textarea id="message" rows="4"></textarea>
+    <textarea id="message" rows="4" required></textarea>
     <button type="submit">Разобрать заявку</button>
   </form>
   <pre id="result" aria-live="polite"></pre>
   <script type="module">
     const form = document.querySelector("form");
     const result = document.querySelector("#result");
+    const message = document.querySelector("#message");
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const reply = await fetch("/api/triage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: document.querySelector("#message").value }),
-      });
-      result.textContent = JSON.stringify(await reply.json(), null, 2);
+      result.textContent = "Разбираем заявку…";
+      try {
+        const reply = await fetch("/api/triage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: message.value }),
+        });
+        const data = await reply.json();
+        if (!reply.ok || data.status === "manual_review") {
+          result.textContent = "Не удалось подготовить черновик. Разберите заявку вручную.";
+          return;
+        }
+        result.textContent = `Тема: ${data.topic}\nЧерновик: ${data.draft}`;
+      } catch {
+        result.textContent = "Не удалось связаться с сервисом. Разберите заявку вручную.";
+      }
     });
   </script>
 </body>
